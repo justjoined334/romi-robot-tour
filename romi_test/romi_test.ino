@@ -12,8 +12,8 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "B67 R F L F30 R R F60 B30 R F L F R F L F L F80 B80 L F L F L F30 B30 L F L F L F R F30 B30 R E";
-double targetTime = 75;
+char moves[200] = "L L L L";
+double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
 
@@ -132,6 +132,7 @@ void loop() {
     double totalTurnTime = 0.65 * numTurns; // but the code doesn't work so the actual time for a turn is 0.65 seconds
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
+    unsigned long it = millis();
 
     // execute the moves (this really should've been a switch case kind of thing)
     for (int i = 0; i < count; i++) {
@@ -160,6 +161,10 @@ void loop() {
         chassis.driveWithTime(endDist, abs(endDist)/totalDist * totalDriveTime);
       }
     }
+    unsigned long ft = millis();
     idle(); // go back to idling after finish
+    while (true){
+      Serial.println(ft-it);
+    }
   }
 }
