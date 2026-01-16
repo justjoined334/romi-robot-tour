@@ -173,11 +173,15 @@ void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BE
   float gyroDriftConstant = 118.29;
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
-  float Kp = 1.25;
+  float Kp = 2.5;
+  float Ki = 0.005;
+  float Kd = 0.0;
   float baseSpeed = 50;
+  float integral = 0;
+  float prevError = 90;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 0.35)) * 1000.0){
+  while (millis() - originalTime < ((targetSeconds + 0.2)) * 2000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
@@ -187,13 +191,17 @@ void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BE
     
     // pid calcs 
     float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
-    float output = Kp * error;
+    integral += error * dt;
+    float derivative = (error - prevError) / dt;
+    prevError = error;
+    
+    float output = Kp * error + Ki * integral + Kd * derivative;
      
     // pid action
     if (output > 50) output = 50;
-    if (output < -50) output = -50;
     setWheelSpeeds(output, -output);
     }
+  Serial.println(gyroAngleZ);
   idle();
 }
 

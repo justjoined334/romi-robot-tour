@@ -134,7 +134,7 @@ void loop() {
       }
     }
 
-    double turnTime = 0.65; // target time for a turn is 0.55 seconds
+    double turnTime = 0.8; // target time for a turn is 0.55 seconds
     double totalTurnTime = 1 * numTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
