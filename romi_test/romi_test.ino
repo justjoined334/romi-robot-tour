@@ -3,7 +3,6 @@
 #include "Romi32U4Buttons.h"
 
 
-
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
 #define NIGHTY_LEFT_TURN_COUNT -715
 #define NIGHTY_RIGHT_TURN_COUNT 708
@@ -13,7 +12,7 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "L L L L L L L L L L L L L L L L ";
+char moves[200] = "R R R R R R R R R R R R R R R R";
 double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
@@ -51,6 +50,8 @@ void setup() {
 
   // initialize the chassis (which also initializes the motors)
   chassis.init();
+  Serial.println("hello??");
+  
   idle();
 
   // these can be undone for the student to adjust
@@ -77,7 +78,11 @@ void right(float seconds) {
   chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds);
 }
 
-// I wrote most of this in a meditative state the night before states lol
+void righty(float seconds){
+  chassis.initIMU(); // just reinitialize each time idc it only takes 2 ms LOL
+  chassis.newTurningRight(seconds);
+}
+
 void loop() {
   if (buttonA.getSingleDebouncedPress()) {
     delay(300); // wait a little before starting to move so it doesn't hit the pencil or smth idk
@@ -129,7 +134,7 @@ void loop() {
       }
     }
 
-    double turnTime = 0.55; // target time for a turn is 0.55 seconds
+    double turnTime = 0.65; // target time for a turn is 0.55 seconds
     double totalTurnTime = 1 * numTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
@@ -141,7 +146,7 @@ void loop() {
       st = movesList[i];
 
       if (currentChar == 'R') {
-        right(turnTime);
+        righty(turnTime);
       } else if (currentChar == 'L') {
         left(turnTime);
       }

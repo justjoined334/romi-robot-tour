@@ -1,5 +1,6 @@
 #include "Chassis.h"
-
+#include <LSM6.h>
+#include <Wire.h>
 
 float calculateSpeed(float forwardDistance, float targetSeconds, float elapsedSeconds, float minSpeed = 15) {
   float speedMultiplier = 1.05;
@@ -166,7 +167,48 @@ void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
   setMotorEfforts(0, 0);
 }
 
-//void Chassis::newTurning(int targetCount, float targetSeconds) {}
+void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BEFORE STARTING COMP!!
+  // setup
+  float gyroAngleZ = 0;
+  float gyroDriftConstant = 118.29;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  float Kp = 1.25;
+  float baseSpeed = 50;
+
+  // loop (duh)
+  while (millis() - originalTime < ((targetSeconds + 0.35)) * 1000.0){
+    // angle math
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0;
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + 99.624) * (72.0 / 2001.0) * dt;  //Serial.println(" | " + String(gyroAngleZ) + " | "); keep this hashed out!
+    
+    // pid calcs 
+    float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
+    float output = Kp * error;
+     
+    // pid action
+    if (output > 50) output = 50;
+    if (output < -50) output = -50;
+    setWheelSpeeds(output, -output);
+    }
+  idle();
+}
+
+void Chassis::initIMU() {
+  Wire.begin();
+  if (!imu.init()){
+    // Failed to detect the LSM6.
+    while(1){
+      Serial.println(F("Failed to detect the LSM6."));
+      delay(100);
+    }}
+  imu.enableDefault();
+  imu.writeReg(LSM6::CTRL2_G, 0b10001000);
+  imu.writeReg(LSM6::CTRL1_XL, 0b10000100);
+}
 
 bool Chassis::checkMotionComplete(void) {
   bool complete = leftMotor.checkComplete() && rightMotor.checkComplete();
