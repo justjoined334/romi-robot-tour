@@ -3,8 +3,9 @@
 #include "Romi32U4Buttons.h"
 
 
+
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
-#define NIGHTY_LEFT_TURN_COUNT -709
+#define NIGHTY_LEFT_TURN_COUNT -715
 #define NIGHTY_RIGHT_TURN_COUNT 708
 
 
@@ -12,7 +13,7 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "L L L L L L L L L L L L L L L L";
+char moves[200] = "L L L L L L L L L L L L L L L L ";
 double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
@@ -129,10 +130,10 @@ void loop() {
     }
 
     double turnTime = 0.55; // target time for a turn is 0.55 seconds
-    double totalTurnTime = 0.65 * numTurns; // but the code doesn't work so the actual time for a turn is 0.65 seconds
+    double totalTurnTime = 1 * numTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
-    unsigned long it = millis();
+    unsigned long it = millis(); // measures initial time
 
     // execute the moves (this really should've been a switch case kind of thing)
     for (int i = 0; i < count; i++) {
@@ -161,7 +162,7 @@ void loop() {
         chassis.driveWithTime(endDist, abs(endDist)/totalDist * totalDriveTime);
       }
     }
-    unsigned long ft = millis();
+    unsigned long ft = millis(); // measures final time
     idle(); // go back to idling after finish
     while (true){
       Serial.println(ft-it);

@@ -157,15 +157,16 @@ void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
   while (true) {
     delay(1);
     float elapsedSeconds = (millis() - startTime) / 1000.0;
-    int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds - 0.1, elapsedSeconds);
+    int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds, elapsedSeconds);
     leftMotor.targetCount = thisTarget;
     rightMotor.targetCount = -thisTarget;
-    if (elapsedSeconds > targetSeconds)
+    if (elapsedSeconds > 1)
       break;
   }
-  delay(100);
   setMotorEfforts(0, 0);
 }
+
+//void Chassis::newTurning(int targetCount, float targetSeconds) {}
 
 bool Chassis::checkMotionComplete(void) {
   bool complete = leftMotor.checkComplete() && rightMotor.checkComplete();
