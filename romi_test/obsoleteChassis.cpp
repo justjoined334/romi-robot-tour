@@ -24,22 +24,6 @@ int calculateIntermediateTargetLinear(int target, float finishSeconds, float ela
   return int(elapsedSeconds * (float(target) / finishSeconds));
 }
 
-int calculateIntermediateTargetCurvy(int target, float finishSeconds, float elapsedSeconds) {
-  if (elapsedSeconds >= finishSeconds) return target;
-
-  // Compute ratio of time elapsed (0 → 1)
-  float ratio = elapsedSeconds / finishSeconds;
-  if (ratio < 0) ratio = 0;
-  if (ratio > 1) ratio = 1;
-
-  // Apply cosine easing (ease-in-out)
-  float smoothRatio = 0.5 - 0.5 * cos(PI * ratio);
-
-  // Return the eased intermediate target
-  return int(target * smoothRatio);
-}
-
-
 /**
  * Call init() in your setup() routine. It sets up some internal timers so that the speed controllers
  * for the wheels will work properly.
@@ -166,7 +150,6 @@ void Chassis::turnFor(float turnAngle, float turningSpeed, bool block) {
 }
 
 void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
-  Serial.println("BREAK");
   unsigned long startTime = millis();
   targetSeconds = targetSeconds;
   leftMotor.setTargetCount(0);
@@ -174,17 +157,15 @@ void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
   while (true) {
     delay(1);
     float elapsedSeconds = (millis() - startTime) / 1000.0;
-    int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds, elapsedSeconds);
+    int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds - 0.1, elapsedSeconds);
     leftMotor.targetCount = thisTarget;
     rightMotor.targetCount = -thisTarget;
-    printEncoderCounts();
-    if (elapsedSeconds > 1.0)
+    if (elapsedSeconds > targetSeconds)
       break;
   }
+  delay(100);
   setMotorEfforts(0, 0);
 }
-
-//void Chassis::newTurning(int targetCount, float targetSeconds) {}
 
 bool Chassis::checkMotionComplete(void) {
   bool complete = leftMotor.checkComplete() && rightMotor.checkComplete();

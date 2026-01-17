@@ -3,18 +3,17 @@
 #include "Romi32U4Buttons.h"
 
 
-
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
-#define NIGHTY_LEFT_TURN_COUNT (-715 * 1.00233782)
-#define NIGHTY_RIGHT_TURN_COUNT (708 * 1.00233782)
+#define NIGHTY_LEFT_TURN_COUNT -709
+#define NIGHTY_RIGHT_TURN_COUNT 708
 
 
 // F and B go forward/backwards 50 cm by default, but other distances can be easily specified by adding a number after the letter
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "F F30 l F l F B L F L F L F B L F L F l F B59";
-double targetTime = 67;
+char moves[200] = "B67 R F L F30 R R F60 B30 R F L F R F L F L F80 B80 L F L F L F30 B30 L F L F L F R F30 B30 R E";
+double targetTime = 75;
 double endDist = 41;
 double startDist = -16;
 
@@ -53,7 +52,8 @@ void setup() {
   chassis.init();
   idle();
 
-  // PI controller where first number is P and second is I
+  // these can be undone for the student to adjust
+  // it's actually a PI controller where first number is P and second is I
   chassis.setMotorPIDcoeffs(5, 0.5);
 }
 
@@ -75,14 +75,7 @@ void right(float seconds) {
   chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds);
 }
 
-void lefty(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT * 1.02339588, seconds);
-}
-
-void righty(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT * 1.02339588, seconds);
-}
-
+// I wrote most of this in a meditative state the night before states lol
 void loop() {
   if (buttonA.getSingleDebouncedPress()) {
     delay(300); // wait a little before starting to move so it doesn't hit the pencil or smth idk
@@ -118,7 +111,7 @@ void loop() {
     for (int i = 0; i < count; i++) {
       currentChar = *movesList[i];
       st = movesList[i];
-      if (currentChar == 'R' || currentChar == 'L' || currentChar == 'r' || currentChar == 'l') {
+      if (currentChar == 'R' || currentChar == 'L') {
         numTurns++;
       }
       else if (currentChar == 'F' || currentChar == 'B') {   
@@ -134,11 +127,10 @@ void loop() {
       }
     }
 
-    double turnTime = .6; // target time for a turn is 0.55 seconds
-    double totalTurnTime = .8 * numTurns; // just trust me
+    double turnTime = 0.55; // target time for a turn is 0.55 seconds
+    double totalTurnTime = 0.65 * numTurns; // but the code doesn't work so the actual time for a turn is 0.65 seconds
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
-    unsigned long it = millis(); // measures initial time
 
     // execute the moves (this really should've been a switch case kind of thing)
     for (int i = 0; i < count; i++) {
@@ -149,10 +141,6 @@ void loop() {
         right(turnTime);
       } else if (currentChar == 'L') {
         left(turnTime);
-      } else if (currentChar == 'r') {
-        righty(turnTime);
-      } else if (currentChar == 'l') {
-        lefty(turnTime);
       }
       else if (currentChar == 'F' || currentChar == 'B') {      
         if (st.length() > 1) {
@@ -171,9 +159,6 @@ void loop() {
         chassis.driveWithTime(endDist, abs(endDist)/totalDist * totalDriveTime);
       }
     }
-    unsigned long ft = millis(); // measures final time
     idle(); // go back to idling after finish
-    /*while (true){
-      Serial.println(ft-it);}*/
   }
 }
