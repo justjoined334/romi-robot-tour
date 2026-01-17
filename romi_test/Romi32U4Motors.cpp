@@ -100,6 +100,7 @@ void Romi32U4Motor::update(void) {
     setEffort(effort);
   } else if (ctrlMode == CTRL_PIDPOS) {
     int16_t effort = pidPosCtrl.calcEffort(targetCount - count);
+    Serial.println("Error: " + String(targetCount - count));
     if (effort > 0) {
       if (effort > maxTurnEffort)
         effort = maxTurnEffort;
