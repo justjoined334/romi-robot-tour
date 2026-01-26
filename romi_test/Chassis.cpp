@@ -174,33 +174,37 @@ void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BE
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
   float Kp = 2.5;
-  float Ki = 0.005;
+  float Ki = 0.0;
   float Kd = 0.0;
   float baseSpeed = 50;
   float integral = 0;
   float prevError = 90;
+  int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 0.2)) * 2000.0){
+  while (millis() - originalTime < ((targetSeconds + 0.65)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
     float dt = (currTime - prevTime) / 1000.0;
     prevTime = currTime;
-    gyroAngleZ += (imu.g.z + 99.624) * (72.0 / 2001.0) * dt;  //Serial.println(" | " + String(gyroAngleZ) + " | "); keep this hashed out!
-    
+    gyroAngleZ += (imu.g.z + 99.624) * (72.0 / 2001.0) * dt;  
+        
     // pid calcs 
     float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
-    integral += error * dt;
-    float derivative = (error - prevError) / dt;
-    prevError = error;
+    //integral += error * dt;
+    //float derivative = (error - prevError) / dt;
+    //prevError = error;
     
-    float output = Kp * error + Ki * integral + Kd * derivative;
+    float output = Kp * error; //+ Ki * integral + Kd * derivative;
      
     // pid action
     if (output > 50) output = 50;
+    if (abs(output) < 3 && output != 0) output = (output > 0) ? 3 : -3;
     setWheelSpeeds(output, -output);
-    }
+    counter += 1;
+    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out!
+  }
   Serial.println(gyroAngleZ);
   idle();
 }

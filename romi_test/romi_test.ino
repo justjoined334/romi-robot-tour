@@ -12,7 +12,7 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "R R R R R R R R R R R R R R R R";
+char moves[200] = "R";
 double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
@@ -76,13 +76,14 @@ void right(float seconds) {
 }
 
 void righty(float seconds){
-  chassis.initIMU(); // just reinitialize each time idc it only takes 2 ms LOL
   chassis.newTurningRight(seconds);
 }
 
 void loop() {
   if (buttonA.getSingleDebouncedPress()) {
     delay(300); // wait a little before starting to move so it doesn't hit the pencil or smth idk
+    chassis.initIMU();
+    delay(50);
     robotState = ROBOT_MOVE;
   }
 
@@ -131,8 +132,8 @@ void loop() {
       }
     }
 
-    double turnTime = 0.8; // target time for a turn is 0.55 seconds
-    double totalTurnTime = 1 * numTurns; // just trust me
+    double turnTime = 0.35; // target time for a turn is 0.55 seconds
+    double totalTurnTime = 1.0 * numTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
     unsigned long it = millis(); // measures initial time
@@ -167,7 +168,7 @@ void loop() {
     unsigned long ft = millis(); // measures final time
     idle(); // go back to idling after finish
     while (true){
-      Serial.println(ft-it);
+      Serial.print(ft-it);
     }
   }
 }
