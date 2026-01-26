@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 #include "Romi32U4Motors.h"
+#include <LSM6.h>
+#include <Wire.h>
 
 /** \class Chassis
  * The Chassis class manages the motors and encoders.
@@ -19,6 +21,7 @@ class Chassis {
 public:
   LeftMotor leftMotor;
   RightMotor rightMotor;
+  LSM6 imu;
 
 protected:
   const float cmPerEncoderTick;
@@ -108,6 +111,8 @@ public:
      * */
   bool checkMotionComplete(void);
 
+  void newTurningRight(float targetSeconds);
+  void initIMU();
   void printSpeeds(void);
   void printEncoderCounts(void);
 

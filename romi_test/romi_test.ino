@@ -3,27 +3,28 @@
 #include "Romi32U4Buttons.h"
 
 
-
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
-#define NIGHTY_LEFT_TURN_COUNT (-715 * 1.00233782)
-#define NIGHTY_RIGHT_TURN_COUNT (708 * 1.00233782)
+#define NIGHTY_LEFT_TURN_COUNT -715
+#define NIGHTY_RIGHT_TURN_COUNT 708
 
 
 // F and B go forward/backwards 50 cm by default, but other distances can be easily specified by adding a number after the letter
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "F F30 l F l F B L F L F L F B L F L F l F B59";
-double targetTime = 67;
+char moves[200] = "R R R R R R R R R R R R R R R R";
+double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
 
 
-// parameters are wheel diam, encoder counts, wheel track
+// parameters are wheel diam, encoder counts, wheel track (tune these to your own hardware)
+// default values of 7, 1440, 14 can't go wrong
 Chassis chassis(6.994936972, 1440, 14.0081);
 Romi32U4ButtonA buttonA;
 
-// define the states
+// define the states (I LOVE state machines) (I made the state machine for Jacob's flappy bird in desmos)
+// this state machine is not actually useful in any way
 enum ROBOT_STATE { ROBOT_IDLE,
                    ROBOT_MOVE,
                    MOVING };
@@ -49,9 +50,10 @@ void setup() {
 
   // initialize the chassis (which also initializes the motors)
   chassis.init();
+  Serial.println("hello??");
+  
   idle();
 
-  // PI controller where first number is P and second is I
   chassis.setMotorPIDcoeffs(5, 0.5);
 }
 
@@ -73,12 +75,9 @@ void right(float seconds) {
   chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds);
 }
 
-void lefty(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT * 1.02339588, seconds);
-}
-
-void righty(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT * 1.02339588, seconds);
+void righty(float seconds){
+  chassis.initIMU(); // just reinitialize each time idc it only takes 2 ms LOL
+  chassis.newTurningRight(seconds);
 }
 
 void loop() {
@@ -116,7 +115,7 @@ void loop() {
     for (int i = 0; i < count; i++) {
       currentChar = *movesList[i];
       st = movesList[i];
-      if (currentChar == 'R' || currentChar == 'L' || currentChar == 'r' || currentChar == 'l') {
+      if (currentChar == 'R' || currentChar == 'L') {
         numTurns++;
       }
       else if (currentChar == 'F' || currentChar == 'B') {   
@@ -132,8 +131,8 @@ void loop() {
       }
     }
 
-    double turnTime = .6; // target time for a turn is 0.55 seconds
-    double totalTurnTime = .8 * numTurns; // just trust me
+    double turnTime = 0.8; // target time for a turn is 0.55 seconds
+    double totalTurnTime = 1 * numTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
     unsigned long it = millis(); // measures initial time
@@ -144,13 +143,9 @@ void loop() {
       st = movesList[i];
 
       if (currentChar == 'R') {
-        right(turnTime);
+        righty(turnTime);
       } else if (currentChar == 'L') {
         left(turnTime);
-      } else if (currentChar == 'r') {
-        righty(turnTime);
-      } else if (currentChar == 'l') {
-        lefty(turnTime);
       }
       else if (currentChar == 'F' || currentChar == 'B') {      
         if (st.length() > 1) {
@@ -171,7 +166,8 @@ void loop() {
     }
     unsigned long ft = millis(); // measures final time
     idle(); // go back to idling after finish
-    /*while (true){
-      Serial.println(ft-it);}*/
+    while (true){
+      Serial.println(ft-it);
+    }
   }
 }
