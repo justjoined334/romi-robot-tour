@@ -19,13 +19,11 @@ double endDist = 41;
 double startDist = -16;
 
 
-// parameters are wheel diam, encoder counts, wheel track (tune these to your own hardware)
-// default values of 7, 1440, 14 can't go wrong
+// parameters are wheel diam, encoder counts, wheel track
 Chassis chassis(6.994936972, 1440, 14.0081);
 Romi32U4ButtonA buttonA;
 
-// define the states (I LOVE state machines) (I made the state machine for Jacob's flappy bird in desmos)
-// this state machine is not actually useful in any way
+// define the states
 enum ROBOT_STATE { ROBOT_IDLE,
                    ROBOT_MOVE,
                    MOVING };

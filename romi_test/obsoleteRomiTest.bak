@@ -23,8 +23,7 @@ double startDist = -16;
 Chassis chassis(6.994936972, 1440, 14.0081);
 Romi32U4ButtonA buttonA;
 
-// define the states (I LOVE state machines) (I made the state machine for Jacob's flappy bird in desmos)
-// this state machine is not actually useful in any way
+// define the states 
 enum ROBOT_STATE { ROBOT_IDLE,
                    ROBOT_MOVE,
                    MOVING };
