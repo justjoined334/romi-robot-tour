@@ -167,10 +167,9 @@ void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
   setMotorEfforts(0, 0);
 }
 
-void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BEFORE STARTING COMP!!
+void Chassis::newTurningRight(float targetSeconds, float multiplyConst) { //HEY MEASURE GYRO DRIFT BEFORE STARTING COMP!!
   // setup
   float gyroAngleZ = 0;
-  float gyroDriftConstant = 118.29;
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
   float Kp = 2.5;
@@ -186,9 +185,9 @@ void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BE
     // angle math
     imu.read();
     unsigned long currTime = millis();
-    float dt = (currTime - prevTime) / 1000.0;
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
     prevTime = currTime;
-    gyroAngleZ += (imu.g.z + 99.624) * (72.0 / 2001.0) * dt;  
+    gyroAngleZ += (imu.g.z + 99.624) * (multiplyConst) * dt;  
         
     // pid calcs 
     float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
@@ -203,7 +202,39 @@ void Chassis::newTurningRight(float targetSeconds) { //HEY MEASURE GYRO DRIFT BE
     if (abs(output) < 3 && output != 0) output = (output > 0) ? 3 : -3;
     setWheelSpeeds(output, -output);
     counter += 1;
-    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out!
+    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out at comp!
+  }
+  Serial.println(gyroAngleZ);
+  idle();
+}
+
+void Chassis::newTurningLeft(float targetSeconds, float multiplyConst) {
+  // setup
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  float Kp = 2.5;
+  int counter = 0;
+
+  // loop (duh)
+  while (millis() - originalTime < ((targetSeconds + 0.65)) * 1000.0){
+    // angle math
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + 99.624) * (multiplyConst) * dt;  
+        
+    // pid calcs 
+    float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
+    float output = Kp * error; //+ Ki * integral + Kd * derivative;
+     
+    // pid action
+    if (output > 50) output = 50;
+    if (abs(output) < 3 && output != 0) output = (output > 0) ? 3 : -3;
+    setWheelSpeeds(-output, output);
+    counter += 1;
+    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out at comp!
   }
   Serial.println(gyroAngleZ);
   idle();
@@ -220,6 +251,33 @@ void Chassis::initIMU() {
   imu.enableDefault();
   imu.writeReg(LSM6::CTRL2_G, 0b10001000);
   imu.writeReg(LSM6::CTRL1_XL, 0b10000100);
+}
+
+void Chassis::IMUinit() {
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  while((millis() < originalTime + 30000)) {
+    imu.read();
+    unsigned long currTime = millis();
+    double dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime; // millis
+    gyroAngleZ += (imu.g.z + 0) * dt;
+    Serial.println(gyroAngleZ / ((currTime - originalTime) / 1000));
+  }
+}
+void Chassis::IMUinit2() {
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  while(true) {
+    imu.read();
+    unsigned long currTime = millis();
+    double dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime; // millis
+    gyroAngleZ += (imu.g.z + 99.624) * (1) * dt;
+    Serial.println(gyroAngleZ);
+      }
 }
 
 bool Chassis::checkMotionComplete(void) {

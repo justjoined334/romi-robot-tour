@@ -22,6 +22,7 @@ double startDist = -16;
 // default values of 7, 1440, 14 can't go wrong
 Chassis chassis(6.994936972, 1440, 14.0081);
 Romi32U4ButtonA buttonA;
+Romi32U4ButtonC buttonC;
 
 // define the states (I LOVE state machines) (I made the state machine for Jacob's flappy bird in desmos)
 // this state machine is not actually useful in any way
@@ -76,7 +77,7 @@ void right(float seconds) {
 }
 
 void righty(float seconds){
-  chassis.newTurningRight(seconds);
+  chassis.newTurningRight(seconds, (0.03598200899550224887556221889055)); //plz dont make this zero!! HERE! HERE! HERE!
 }
 
 void loop() {
@@ -85,6 +86,18 @@ void loop() {
     chassis.initIMU();
     delay(50);
     robotState = ROBOT_MOVE;
+  }
+
+  if (buttonC.getSingleDebouncedPress()) {
+    delay(1000);
+    chassis.initIMU();
+    delay(1000);
+    chassis.IMUinit(); //coding at its peak
+    while (true){
+      if (buttonC.getSingleDebouncedPress()) {
+        chassis.IMUinit2();
+      }
+    }
   }
 
   if (robotState == ROBOT_MOVE) {
