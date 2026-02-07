@@ -111,11 +111,11 @@ public:
      * */
   bool checkMotionComplete(void);
 
-  void newTurningRight(float targetSeconds, float multiplyConst);
-  void newTurningLeft(float targetSeconds, float multiplyConst);
+  void newTurningRight(float targetSeconds, float multiplyConst, float driftC);
+  void newTurningLeft(float targetSeconds, float multiplyConst, float driftC);
   void initIMU();
-  void IMUinit();
-  void IMUinit2();
+  double IMUinit();
+  void IMUinit2(double driftConst);
   void printSpeeds(void);
   void printEncoderCounts(void);
 

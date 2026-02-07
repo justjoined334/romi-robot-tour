@@ -12,7 +12,7 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "R";
+char moves[200] = "R L R L";
 double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
@@ -77,7 +77,11 @@ void right(float seconds) {
 }
 
 void righty(float seconds){
-  chassis.newTurningRight(seconds, (0.03598200899550224887556221889055)); //plz dont make this zero!! HERE! HERE! HERE!
+  chassis.newTurningRight(seconds, 0.0407412762, 90.87); //plz dont make this zero!! HERE! HERE! HERE!
+}
+
+void lefty(float seconds){
+  chassis.newTurningLeft(seconds, 0.0407412762, 90.87); //plz dont make this zero!! HERE! HERE! HERE!
 }
 
 void loop() {
@@ -92,10 +96,11 @@ void loop() {
     delay(1000);
     chassis.initIMU();
     delay(1000);
-    chassis.IMUinit(); //coding at its peak
+    double driftConst = chassis.IMUinit(); //coding at its peak
     while (true){
       if (buttonC.getSingleDebouncedPress()) {
-        chassis.IMUinit2();
+        delay(1000);
+        chassis.IMUinit2(driftConst);
       }
     }
   }
@@ -159,7 +164,7 @@ void loop() {
       if (currentChar == 'R') {
         righty(turnTime);
       } else if (currentChar == 'L') {
-        left(turnTime);
+        lefty(turnTime);
       }
       else if (currentChar == 'F' || currentChar == 'B') {      
         if (st.length() > 1) {
