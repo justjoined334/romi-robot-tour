@@ -103,7 +103,7 @@ public:
      * @param targetCount Turn angle expressed in encoder count
      * @param targetSeconds Target time in seconds
      * */
-  void turnWithTimePosPid(int targetCount, float targetSeconds);
+  double turnWithTimePosPid(int targetCount, float targetSeconds, double driftConst);
 
   /** \brief Checks if the motion commanded by driveFor() or turnFor() is done.
      * 
@@ -115,7 +115,6 @@ public:
   void newTurningLeft(float targetSeconds, float multiplyConst, float driftC);
   void initIMU();
   double IMUinit();
-  void IMUinit2(double driftConst);
   void printSpeeds(void);
   void printEncoderCounts(void);
 

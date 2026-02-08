@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "Chassis.h"
 #include "Romi32U4Buttons.h"
+#include "Romi32U4.h"
 
 
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
@@ -12,10 +13,14 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "R R R";
+char moves[200] = "R R L L R L r r r r";
 double targetTime = 6;
 double endDist = 41;
 double startDist = -16;
+double driftConst = 94.4; // also the default value
+double turnConst = 0.04; // default value (P.S. very inaccurate)
+int turnTimes = 0;
+double turnTotal = 0.0;
 
 
 // parameters are wheel diam, encoder counts, wheel track (tune these to your own hardware)
@@ -69,26 +74,28 @@ void turnRight() {
 }
 
 void left(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT, seconds);
+  turnTotal += chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT, seconds, driftConst);
+  turnTimes += 1;
+  turnConst = turnTotal / turnTimes;
 }
 
 void right(float seconds) {
-  chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds);
+  turnTotal += chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds, driftConst);
+  turnTimes += 1;
+  turnConst = turnTotal / turnTimes;
 }
 
 void righty(float seconds){
-  chassis.newTurningRight(seconds, 0.0407412762, 90.87); //plz dont make this zero!! HERE! HERE! HERE!
+  chassis.newTurningRight(seconds, turnConst, driftConst);
 }
 
 void lefty(float seconds){
-  chassis.newTurningLeft(seconds, 0.0407412762, 90.87); //plz dont make this zero!! HERE! HERE! HERE!
+  chassis.newTurningLeft(seconds, turnConst, driftConst);
 }
 
 void loop() {
   if (buttonA.getSingleDebouncedPress()) {
     delay(300); // wait a little before starting to move so it doesn't hit the pencil or smth idk
-    chassis.initIMU();
-    delay(50);
     robotState = ROBOT_MOVE;
   }
 
@@ -96,13 +103,21 @@ void loop() {
     delay(1000);
     chassis.initIMU();
     delay(1000);
-    double driftConst = chassis.IMUinit(); //coding at its peak
-    while (true){
-      if (buttonC.getSingleDebouncedPress()) {
-        delay(1000);
-        chassis.IMUinit2(driftConst);
-      }
-    }
+    driftConst = chassis.IMUinit(); //coding at its peak
+    for (int i = 0; i < 10; i++) {
+      ledRed(1); ledYellow(0); ledGreen(1);
+      delay(30);
+      ledRed(0); ledYellow(1); ledGreen(1);
+      delay(30);
+      ledRed(1); ledYellow(1); ledGreen(1);
+      delay(30);
+      ledRed(0); ledYellow(0); ledGreen(0);
+      delay(30);
+      ledRed(1); ledYellow(0); ledGreen(0);
+      delay(30);
+      ledRed(0); ledYellow(1); ledGreen(0);
+      delay(30);}
+  ledRed(0); ledYellow(0); ledGreen(0);  // ensure all off at end
   }
 
   if (robotState == ROBOT_MOVE) {
@@ -125,6 +140,7 @@ void loop() {
     }
 
     int numTurns = 0;
+    int numGTurns = 0;
     double totalDist = 0;
     char currentChar;
     String st;
@@ -136,6 +152,8 @@ void loop() {
       st = movesList[i];
       if (currentChar == 'R' || currentChar == 'L') {
         numTurns++;
+      } else if (currentChar == 'r' || currentChar == 'l') {
+        numGTurns++;
       }
       else if (currentChar == 'F' || currentChar == 'B') {   
         if (st.length() > 1) {
@@ -150,9 +168,11 @@ void loop() {
       }
     }
 
-    double turnTime = 0.35; // target time for a turn is 0.55 seconds
-    double totalTurnTime = 1.0 * numTurns; // just trust me
-    double totalDriveTime = targetTime - totalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
+    double turnTime = 0.6; // target time for a turn is 0.55 seconds
+    double totalTurnTime = 0.8 * numTurns; // just trust me
+    double GturnTime = 0.35; // target time for a turn is 0.55 seconds
+    double GtotalTurnTime = 1.0 * numGTurns; // just trust me
+    double totalDriveTime = targetTime - totalTurnTime - GtotalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
     unsigned long it = millis(); // measures initial time
 
@@ -162,9 +182,13 @@ void loop() {
       st = movesList[i];
 
       if (currentChar == 'R') {
-        righty(turnTime);
+        right(turnTime);
       } else if (currentChar == 'L') {
-        lefty(turnTime);
+        left(turnTime);
+      } else if (currentChar == 'r') {
+        righty(GturnTime);
+      } else if (currentChar == 'l') {
+        lefty(GturnTime);
       }
       else if (currentChar == 'F' || currentChar == 'B') {      
         if (st.length() > 1) {
@@ -185,8 +209,8 @@ void loop() {
     }
     unsigned long ft = millis(); // measures final time
     idle(); // go back to idling after finish
-    while (true){
-      Serial.print(ft-it);
-    }
+    /*while (true){
+      Serial.print(String(ft-it) + " . ");
+    }*/
   }
 }

@@ -150,24 +150,37 @@ void Chassis::turnFor(float turnAngle, float turningSpeed, bool block) {
   }
 }
 
-void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
-  unsigned long startTime = millis();
+double Chassis::turnWithTimePosPid(int targetCount, float targetSeconds, double driftConst) {
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
   targetSeconds = targetSeconds;
   leftMotor.setTargetCount(0);
   rightMotor.setTargetCount(0);
   while (true) {
+    // normal stuff
     delay(1);
-    float elapsedSeconds = (millis() - startTime) / 1000.0;
+    float elapsedSeconds = (millis() - originalTime) / 1000.0;
     int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds, elapsedSeconds);
     leftMotor.targetCount = thisTarget;
     rightMotor.targetCount = -thisTarget;
     if (elapsedSeconds > 1)
       break;
+
+    // gyro stuff
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + driftConst) * dt; 
   }
   setMotorEfforts(0, 0);
+  Serial.println(gyroAngleZ);
+  Serial.println("corrected turn const" + String(abs(90.0 / gyroAngleZ)));
+  return (abs(90.0 / gyroAngleZ));
 }
 
-void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float driftC) { //HEY MEASURE GYRO DRIFT BEFORE STARTING COMP!!
+void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float driftC) {
   // setup
   float gyroAngleZ = 0;
   unsigned long originalTime = millis();
@@ -257,30 +270,25 @@ double Chassis::IMUinit() {
   float gyroAngleZ = 0;
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
+  int county = 0;
+  double driftConst = 0.0;
   Serial.println("working...");
-  while((millis() < originalTime + 30000)) {
+  //return 94; 
+  while((millis() < originalTime + 40000)) {
     imu.read();
     unsigned long currTime = millis();
     double dt = (currTime - prevTime) / 1000.0; // units = seconds
     prevTime = currTime; // millis
     gyroAngleZ += (imu.g.z + 0) * dt;
+    if (millis() > originalTime + 10000) {
+      county += 1;
+      driftConst += (gyroAngleZ / ((millis() - originalTime) / 1000.0));
+      Serial.println(driftConst);
+
+    }
   }
-  double driftConst = (gyroAngleZ / ((millis() - originalTime) / 1000.0));
-  Serial.println(driftConst);
-  return driftConst;
-}
-void Chassis::IMUinit2(double driftConst) {
-  float gyroAngleZ = 0;
-  unsigned long originalTime = millis();
-  unsigned long prevTime = millis();
-  while(true) {
-    imu.read();
-    unsigned long currTime = millis();
-    double dt = (currTime - prevTime) / 1000.0; // units = seconds
-    prevTime = currTime; // millis
-    gyroAngleZ += (imu.g.z - driftConst) * (1) * dt;
-    Serial.println(gyroAngleZ);
-      }
+  Serial.println(abs(driftConst/county));
+  return (abs(driftConst/county));
 }
 
 bool Chassis::checkMotionComplete(void) {
