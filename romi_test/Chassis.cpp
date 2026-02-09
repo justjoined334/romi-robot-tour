@@ -230,7 +230,7 @@ void Chassis::newTurningLeft(float targetSeconds, float multiplyConst, float dri
   int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 0.65)) * 1000.0){
+  while (millis() - originalTime < ((targetSeconds + 0.5)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
