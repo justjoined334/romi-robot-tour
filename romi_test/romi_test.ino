@@ -5,15 +5,15 @@
 
 
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
-#define NIGHTY_LEFT_TURN_COUNT -715.5
-#define NIGHTY_RIGHT_TURN_COUNT 717
+#define NIGHTY_LEFT_TURN_COUNT -716
+#define NIGHTY_RIGHT_TURN_COUNT 716
 #define BUZZER_PIN 6
 
 // F and B go forward/backwards 50 cm by default, but other distances can be easily specified by adding a number after the letter
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "l l r r";
+char moves[200] = "R R R R L L L L l l l l r r r r";
 double targetTime = 12;
 double endDist = 41;
 double startDist = -16;
@@ -147,7 +147,22 @@ void loop() {
     initialized = true;
     delay(1000);
     driftConst = chassis.IMUinit(); //coding at its peak
-    glissando(7000, 5000, 400, 3);
+    //glissando(7000, 5000, 400, 3);
+    //delay(600);
+    for (int i=0; i < ((int(fabs(driftConst / 100))) % 10); i++){ // hundreds
+      glissando(2000, 1500, 100, 3);
+      delay(100);
+      }
+    delay(400);
+    for (int i=0; i < ((int(fabs(driftConst / 10))) % 10); i++){ // tens
+      glissando(1500, 2000, 100, 3);
+      delay(100);
+      }
+    delay(400);
+    for (int i=0; i < (int(fabs(driftConst)) % 10); i++){ // ones
+      glissando(5000, 4000, 100, 3);
+      delay(100);
+      }
     /*for (int i = 0; i < 20; i++) {
       ledRed(1); ledYellow(0); ledGreen(1);
       delay(30);
@@ -161,8 +176,7 @@ void loop() {
       delay(30);
       ledRed(0); ledYellow(1); ledGreen(0);
       delay(30);}*/
-  ledRed(0); ledYellow(0); ledGreen(0);  // ensure all off at end
-
+    ledRed(0); ledYellow(0); ledGreen(0);  // ensure all off at end
   }
 
   if (robotState == ROBOT_MOVE) {
@@ -215,8 +229,8 @@ void loop() {
 
     double turnTime = 0.6; // target time for a turn is 0.55 seconds
     double totalTurnTime = 0.8 * numTurns; // just trust me
-    double GturnTime = 0.5; // target time for a turn is 0.55 seconds
-    double GtotalTurnTime = 1.0 * numGTurns; // just trust me
+    double GturnTime = 1.0; // target time for a turn is 0.55 seconds
+    double GtotalTurnTime = 3.0 * numGTurns; // just trust me
     double totalDriveTime = targetTime - totalTurnTime - GtotalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
     unsigned long it = millis(); // measures initial time

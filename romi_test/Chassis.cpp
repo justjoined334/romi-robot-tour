@@ -176,7 +176,7 @@ double Chassis::turnWithTimePosPid(int targetCount, float targetSeconds, double 
   }
   setMotorEfforts(0, 0);
   Serial.println(gyroAngleZ);
-  Serial.println("corrected turn const" + String(abs(90.0 / gyroAngleZ)));
+  Serial.println("corrected turn const: " + String(abs(90.0 / gyroAngleZ), 6));
   return (abs(90.0 / gyroAngleZ));
 }
 
@@ -186,15 +186,13 @@ void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float dr
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
   float Kp = 2.5;
-  float Ki = 0.0;
-  float Kd = 0.0;
   float baseSpeed = 50;
   float integral = 0;
   float prevError = 90;
   int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 0.65)) * 1000.0){
+  while (millis() - originalTime < ((targetSeconds + 2.0)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
@@ -204,10 +202,6 @@ void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float dr
         
     // pid calcs 
     float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
-    //integral += error * dt;
-    //float derivative = (error - prevError) / dt;
-    //prevError = error;
-    
     float output = Kp * error; //+ Ki * integral + Kd * derivative;
      
     // pid action
@@ -230,7 +224,7 @@ void Chassis::newTurningLeft(float targetSeconds, float multiplyConst, float dri
   int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 0.5)) * 1000.0){
+  while (millis() - originalTime < ((targetSeconds + 2.0)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
