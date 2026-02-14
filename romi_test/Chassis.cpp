@@ -1,6 +1,7 @@
 #include "Chassis.h"
 #include <LSM6.h>
 #include <Wire.h>
+float GTKP = 2.5;
 
 float calculateSpeed(float forwardDistance, float targetSeconds, float elapsedSeconds, float minSpeed = 15) {
   float speedMultiplier = 1.05;
@@ -164,7 +165,7 @@ double Chassis::turnWithTimePosPid(int targetCount, float targetSeconds, double 
     int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds, elapsedSeconds);
     leftMotor.targetCount = thisTarget;
     rightMotor.targetCount = -thisTarget;
-    if (elapsedSeconds > 1)
+    if (elapsedSeconds > 0.8)
       break;
 
     // gyro stuff
@@ -180,19 +181,19 @@ double Chassis::turnWithTimePosPid(int targetCount, float targetSeconds, double 
   return (abs(90.0 / gyroAngleZ));
 }
 
-void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float driftC) {
+void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float driftC, float ttt) {
   // setup
   float gyroAngleZ = 0;
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
-  float Kp = 2.5;
+  float Kp = GTKP;
   float baseSpeed = 50;
   float integral = 0;
   float prevError = 90;
   int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 2.0)) * 1000.0){
+  while (millis() - originalTime < ((ttt)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();
@@ -215,16 +216,16 @@ void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float dr
   idle();
 }
 
-void Chassis::newTurningLeft(float targetSeconds, float multiplyConst, float driftC) {
+void Chassis::newTurningLeft(float targetSeconds, float multiplyConst, float driftC, float ttt) {
   // setup
   float gyroAngleZ = 0;
   unsigned long originalTime = millis();
   unsigned long prevTime = millis();
-  float Kp = 2.5;
+  float Kp = GTKP;
   int counter = 0;
 
   // loop (duh)
-  while (millis() - originalTime < ((targetSeconds + 2.0)) * 1000.0){
+  while (millis() - originalTime < ((ttt)) * 1000.0){
     // angle math
     imu.read();
     unsigned long currTime = millis();

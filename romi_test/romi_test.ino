@@ -5,22 +5,28 @@
 
 
 // encoder count targets, tune by turning 16 times and changing numbers untill offset is 0
-#define NIGHTY_LEFT_TURN_COUNT -716
-#define NIGHTY_RIGHT_TURN_COUNT 716
+#define NIGHTY_LEFT_TURN_COUNT -712
+#define NIGHTY_RIGHT_TURN_COUNT 713.3
 #define BUZZER_PIN 6
 
 // F and B go forward/backwards 50 cm by default, but other distances can be easily specified by adding a number after the letter
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "R R R R L L L L l l l l r r r r";
-double targetTime = 12;
-double endDist = 41;
-double startDist = -16;
+char moves[200] = "S L F30 W B80 L F10 L L F40 l l F40 B15 R F R F95 l F l F20 B15 L F95";
+double targetTime = 64.5;
+double endDist = 40;
+double startDist = 34;
 double driftConst = 94.4; // also the default value (P.S. you don't really need to press C if in a rush!)
 double turnConst = 0.04; // default value (P.S. very inaccurate)
 int turnTimes = 0;
 double turnTotal = 0.0;
+int turnTimesLEFT = 0;
+double turnTotalLEFT = 0.0;
+int turnTimesRIGHT = 0;
+double turnTotalRIGHT = 0.0;
+double turnConstLEFT = 0.04;
+double turnConstRIGHT = 0.04;
 bool initialized = false;
 
 
@@ -103,23 +109,41 @@ void turnRight() {
 }
 
 void left(float seconds) {
-  turnTotal += chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT, seconds, driftConst);
-  turnTimes += 1;
-  turnConst = turnTotal / turnTimes;
+  if (initialized){
+    turnTotal += chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT, seconds, driftConst);
+    turnTimes += 1;
+    turnConst = turnTotal / turnTimes;}
+  else{
+    turnTotalLEFT += chassis.turnWithTimePosPid(NIGHTY_LEFT_TURN_COUNT, seconds, driftConst);
+    turnTimesLEFT += 1;
+    turnConstLEFT = turnTotalLEFT / turnTimesLEFT;}
 }
 
 void right(float seconds) {
-  turnTotal += chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds, driftConst);
-  turnTimes += 1;
-  turnConst = turnTotal / turnTimes;
+  if (initialized){
+    turnTotal += chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds, driftConst);
+    turnTimes += 1;
+    turnConst = turnTotal / turnTimes;}
+  else{
+    turnTotalRIGHT += chassis.turnWithTimePosPid(NIGHTY_RIGHT_TURN_COUNT, seconds, driftConst);
+    turnTimesRIGHT += 1;
+    turnConstRIGHT = turnTotalRIGHT / turnTimesRIGHT;}
 }
 
-void righty(float seconds){
-  chassis.newTurningRight(seconds, turnConst, driftConst);
+void righty(float seconds, float Gttt){
+  if (initialized){
+    chassis.newTurningRight(seconds, turnConst, driftConst, Gttt);}
+  else{
+    chassis.newTurningRight(seconds, turnConstRIGHT, driftConst, Gttt);
+  }
 }
 
-void lefty(float seconds){
-  chassis.newTurningLeft(seconds, turnConst, driftConst);
+void lefty(float seconds, float Gttt){
+  if (initialized){
+    chassis.newTurningLeft(seconds, turnConst, driftConst, Gttt);}
+  else{
+    chassis.newTurningLeft(seconds, turnConstLEFT, driftConst, Gttt);
+  }
 }
 
 void loop() {
@@ -127,6 +151,7 @@ void loop() {
     delay(300); // wait a little before starting to move so it doesn't hit the pencil or smth idk
     if (!initialized){
       chassis.initIMU();
+      delay(300);
     }
     robotState = ROBOT_MOVE;
   }
@@ -200,6 +225,7 @@ void loop() {
 
     int numTurns = 0;
     int numGTurns = 0;
+    int numWait = 0;
     double totalDist = 0;
     char currentChar;
     String st;
@@ -224,13 +250,16 @@ void loop() {
         totalDist += abs(startDist);
       } else if (currentChar == 'E') {
         totalDist += abs(endDist);
+      } else if (currentChar == 'W') {
+        numWait += 1;
       }
     }
 
     double turnTime = 0.6; // target time for a turn is 0.55 seconds
     double totalTurnTime = 0.8 * numTurns; // just trust me
-    double GturnTime = 1.0; // target time for a turn is 0.55 seconds
+    double GturnTime = 2.0; // target time for a turn is 0.55 seconds
     double GtotalTurnTime = 3.0 * numGTurns; // just trust me
+    double waitTime = 0.1 * numWait;
     double totalDriveTime = targetTime - totalTurnTime - GtotalTurnTime - 0.0029*totalDist; // this also always went over hence the 0.0029*totalDist
     double dist;
     unsigned long it = millis(); // measures initial time
@@ -245,9 +274,9 @@ void loop() {
       } else if (currentChar == 'L') {
         left(turnTime);
       } else if (currentChar == 'r') {
-        righty(GturnTime);
+        righty(GturnTime, GtotalTurnTime/numGTurns);
       } else if (currentChar == 'l') {
-        lefty(GturnTime);
+        lefty(GturnTime, GtotalTurnTime/numGTurns);
       }
       else if (currentChar == 'F' || currentChar == 'B') {      
         if (st.length() > 1) {
@@ -264,6 +293,8 @@ void loop() {
         chassis.driveWithTime(startDist, abs(startDist)/totalDist * totalDriveTime);
       } else if (currentChar == 'E') {
         chassis.driveWithTime(endDist, abs(endDist)/totalDist * totalDriveTime);
+      } else if (currentChar == 'W') {
+        delay(100);
       }
     }
     unsigned long ft = millis(); // measures final time
