@@ -13,7 +13,7 @@
 // S and E go the start/end distance
 // L and R are left and right
 // targetTime is target time (duh)
-char moves[200] = "S L F30 W B80 L F10 L L F40 l l F40 B15 R F R F95 l F l F20 B15 L F95";
+char moves[200] = "R L F30 W B80 L F10 L L F40 l l F40 B15 R F R F95 l F l F20 B15 L F95";
 double targetTime = 64.5;
 double endDist = 40;
 double startDist = 34;
