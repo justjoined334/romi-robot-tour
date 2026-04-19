@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 #include "Romi32U4Motors.h"
+#include <LSM6.h>
+#include <Wire.h>
 
 /** \class Chassis
  * The Chassis class manages the motors and encoders.
@@ -19,6 +21,7 @@ class Chassis {
 public:
   LeftMotor leftMotor;
   RightMotor rightMotor;
+  LSM6 imu;
 
 protected:
   const float cmPerEncoderTick;
@@ -100,7 +103,7 @@ public:
      * @param targetCount Turn angle expressed in encoder count
      * @param targetSeconds Target time in seconds
      * */
-  void turnWithTimePosPid(int targetCount, float targetSeconds);
+  double turnWithTimePosPid(int targetCount, float targetSeconds, double driftConst);
 
   /** \brief Checks if the motion commanded by driveFor() or turnFor() is done.
      * 
@@ -108,6 +111,10 @@ public:
      * */
   bool checkMotionComplete(void);
 
+  void newTurningRight(float targetSeconds, float multiplyConst, float driftC, float ttt);
+  void newTurningLeft(float targetSeconds, float multiplyConst, float driftC, float ttt);
+  void initIMU();
+  double IMUinit();
   void printSpeeds(void);
   void printEncoderCounts(void);
 

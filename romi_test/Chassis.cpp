@@ -1,5 +1,7 @@
 #include "Chassis.h"
-
+#include <LSM6.h>
+#include <Wire.h>
+float GTKP = 2.5;
 
 float calculateSpeed(float forwardDistance, float targetSeconds, float elapsedSeconds, float minSpeed = 15) {
   float speedMultiplier = 1.05;
@@ -23,22 +25,6 @@ int calculateIntermediateTargetLinear(int target, float finishSeconds, float ela
   if (elapsedSeconds >= finishSeconds) return target;
   return int(elapsedSeconds * (float(target) / finishSeconds));
 }
-
-int calculateIntermediateTargetCurvy(int target, float finishSeconds, float elapsedSeconds) {
-  if (elapsedSeconds >= finishSeconds) return target;
-
-  // Compute ratio of time elapsed (0 → 1)
-  float ratio = elapsedSeconds / finishSeconds;
-  if (ratio < 0) ratio = 0;
-  if (ratio > 1) ratio = 1;
-
-  // Apply cosine easing (ease-in-out)
-  float smoothRatio = 0.5 - 0.5 * cos(PI * ratio);
-
-  // Return the eased intermediate target
-  return int(target * smoothRatio);
-}
-
 
 /**
  * Call init() in your setup() routine. It sets up some internal timers so that the speed controllers
@@ -165,26 +151,140 @@ void Chassis::turnFor(float turnAngle, float turningSpeed, bool block) {
   }
 }
 
-void Chassis::turnWithTimePosPid(int targetCount, float targetSeconds) {
-  Serial.println("BREAK");
-  unsigned long startTime = millis();
+double Chassis::turnWithTimePosPid(int targetCount, float targetSeconds, double driftConst) {
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
   targetSeconds = targetSeconds;
   leftMotor.setTargetCount(0);
   rightMotor.setTargetCount(0);
   while (true) {
+    // normal stuff
     delay(1);
-    float elapsedSeconds = (millis() - startTime) / 1000.0;
+    float elapsedSeconds = (millis() - originalTime) / 1000.0;
     int thisTarget = calculateIntermediateTargetLinear(targetCount, targetSeconds, elapsedSeconds);
     leftMotor.targetCount = thisTarget;
     rightMotor.targetCount = -thisTarget;
-    printEncoderCounts();
-    if (elapsedSeconds > 1.0)
+    if (elapsedSeconds > 0.8)
       break;
+
+    // gyro stuff
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + driftConst) * dt; 
   }
   setMotorEfforts(0, 0);
+  Serial.println(gyroAngleZ);
+  Serial.println("corrected turn const: " + String(abs(90.0 / gyroAngleZ), 6));
+  return (abs(90.0 / gyroAngleZ));
 }
 
-//void Chassis::newTurning(int targetCount, float targetSeconds) {}
+void Chassis::newTurningRight(float targetSeconds, float multiplyConst, float driftC, float ttt) {
+  // setup
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  float Kp = GTKP;
+  float baseSpeed = 50;
+  float integral = 0;
+  float prevError = 90;
+  int counter = 0;
+
+  // loop (duh)
+  while (millis() - originalTime < ((ttt)) * 1000.0){
+    // angle math
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + driftC) * (multiplyConst) * dt;  
+        
+    // pid calcs 
+    float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
+    float output = Kp * error; //+ Ki * integral + Kd * derivative;
+     
+    // pid action
+    if (output > 50) output = 50;
+    if (abs(output) < 3 && output != 0) output = (output > 0) ? 3 : -3;
+    setWheelSpeeds(output, -output);
+    counter += 1;
+    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out at comp!
+  }
+  Serial.println(gyroAngleZ);
+  idle();
+}
+
+void Chassis::newTurningLeft(float targetSeconds, float multiplyConst, float driftC, float ttt) {
+  // setup
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  float Kp = GTKP;
+  int counter = 0;
+
+  // loop (duh)
+  while (millis() - originalTime < ((ttt)) * 1000.0){
+    // angle math
+    imu.read();
+    unsigned long currTime = millis();
+    float dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime;
+    gyroAngleZ += (imu.g.z + driftC) * (multiplyConst) * dt;  
+        
+    // pid calcs 
+    float error = calculateIntermediateTargetLinear(90, targetSeconds, ((millis() - originalTime) / 1000.0)) - abs(gyroAngleZ);
+    float output = Kp * error; //+ Ki * integral + Kd * derivative;
+     
+    // pid action
+    if (output > 50) output = 50;
+    if (abs(output) < 3 && output != 0) output = (output > 0) ? 3 : -3;
+    setWheelSpeeds(-output, output);
+    counter += 1;
+    Serial.println(" | " + String(gyroAngleZ) + " | " + String(error) + " | " + String(output) + " | " + String(counter)); //keep this hashed out at comp!
+  }
+  Serial.println(gyroAngleZ);
+  idle();
+}
+
+void Chassis::initIMU() {
+  Wire.begin();
+  if (!imu.init()){
+    // Failed to detect the LSM6.
+    while(1){
+      Serial.println(F("Failed to detect the LSM6."));
+      delay(100);
+    }}
+  imu.enableDefault();
+  imu.writeReg(LSM6::CTRL2_G, 0b10001000);
+  imu.writeReg(LSM6::CTRL1_XL, 0b10000100);
+}
+
+double Chassis::IMUinit() {
+  float gyroAngleZ = 0;
+  unsigned long originalTime = millis();
+  unsigned long prevTime = millis();
+  int county = 0;
+  double driftConst = 0.0;
+  Serial.println("working...");
+  //return 94; 
+  while((millis() < originalTime + 40000)) {
+    imu.read();
+    unsigned long currTime = millis();
+    double dt = (currTime - prevTime) / 1000.0; // units = seconds
+    prevTime = currTime; // millis
+    gyroAngleZ += (imu.g.z + 0) * dt;
+    if (millis() > originalTime + 10000) {
+      county += 1;
+      driftConst += (gyroAngleZ / ((millis() - originalTime) / 1000.0));
+      Serial.println(driftConst);
+
+    }
+  }
+  Serial.println(abs(driftConst/county));
+  return (abs(driftConst/county));
+}
 
 bool Chassis::checkMotionComplete(void) {
   bool complete = leftMotor.checkComplete() && rightMotor.checkComplete();
